@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import io
 import requests
 import json
+import os
 
 # Streamlit設定
 st.set_page_config(
@@ -22,8 +23,9 @@ if 'auto_mode' not in st.session_state:
     st.session_state.auto_mode = False
 if 'selected_preset' not in st.session_state:
     st.session_state.selected_preset = "デフォルト"
-if 'api_key' not in st.session_state:
-    st.session_state.api_key = ""
+# API key from environment variables
+if 'api_key_available' not in st.session_state:
+    st.session_state.api_key_available = bool(os.getenv('OPENAI_API_KEY'))
 
 st.title("📊 コンサル向けシミュレーション作成ツール")
 st.markdown("---")
@@ -133,8 +135,11 @@ def calculate_optimization_suggestions(df):
     
     return suggestions
 
-def ai_optimize_simulation(df, business_goals, api_key):
+def ai_optimize_simulation(df, business_goals):
     """AI最適化機能"""
+    
+    # 環境変数からAPIキーを取得
+    api_key = os.getenv('OPENAI_API_KEY')
     
     # APIキーが設定されていない場合は、ルールベースの最適化を実行
     if not api_key or api_key.strip() == "":
@@ -702,18 +707,18 @@ with tab5:
     
     # API設定
     st.subheader("⚙️ AI設定")
+    
+    # API状態表示
+    if st.session_state.api_key_available:
+        st.success("✅ APIキーが設定されています - 高度なAI分析が利用可能")
+        ai_status = "AI分析"
+    else:
+        st.info("ℹ️ APIキーが未設定 - ルールベース分析を使用")
+        ai_status = "ルールベース分析"
+    
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        # APIキー入力（セキュアに）
-        api_key_input = st.text_input(
-            "APIキー (オプション)", 
-            value=st.session_state.api_key,
-            type="password",
-            help="OpenAI APIキーなどを入力。未入力の場合はルールベース分析を使用"
-        )
-        st.session_state.api_key = api_key_input
-        
         # 目標設定
         business_goal = st.selectbox(
             "ビジネス目標",
@@ -722,17 +727,20 @@ with tab5:
         )
     
     with col2:
-        ai_model = st.selectbox(
-            "AIモデル",
-            ["GPT-4", "GPT-3.5", "Claude", "ルールベース"],
-            index=3,
-            help="使用するAIモデルを選択"
-        )
+        if st.session_state.api_key_available:
+            ai_model = st.selectbox(
+                "AIモデル",
+                ["GPT-4", "GPT-3.5-Turbo"],
+                index=1,
+                help="使用するAIモデルを選択"
+            )
+        else:
+            st.info("ルールベース分析のみ利用可能")
         
-        if st.button("🧠 AI分析実行", type="primary"):
-            with st.spinner("AI分析中..."):
+        if st.button(f"🧠 {ai_status}実行", type="primary"):
+            with st.spinner(f"{ai_status}中..."):
                 # AI最適化実行
-                optimizations = ai_optimize_simulation(df, business_goal, st.session_state.api_key)
+                optimizations = ai_optimize_simulation(df, business_goal)
                 st.session_state.ai_optimizations = optimizations
     
     # 分析結果表示
@@ -789,18 +797,32 @@ with tab5:
         
         st.markdown("""
         **🔑 API設定について**
-        - OpenAI APIキーを入力すると高度な分析が可能
-        - 未入力でもルールベース分析を利用可能
-        - APIキーは暗号化して保存されます
+        - 環境変数でAPIキーを設定すると高度なAI分析が可能
+        - 未設定でもルールベース分析を利用可能
+        - セキュアな環境変数での管理を推奨
         """)
     
     # 制約事項
     st.warning("""
     ⚠️ **注意事項**
     - AI提案は参考情報です。最終判断は人間が行ってください
-    - APIキーは適切に管理し、第三者と共有しないでください
+    - APIキーは環境変数で管理し、コードに直接記載しないでください
     - 実際の投資判断には十分な検証を行ってください
     """)
+    
+    # 開発者向け情報
+    with st.expander("🔧 開発者向け - API設定方法"):
+        st.code("""
+# 環境変数でAPIキーを設定
+export OPENAI_API_KEY="your_api_key_here"
+
+# または .env ファイルに記載
+echo "OPENAI_API_KEY=your_api_key_here" > .env
+
+# Streamlit Cloud の場合
+# Settings > Secrets で設定
+OPENAI_API_KEY = "your_api_key_here"
+        """, language="bash")
 
 # フッター
 st.markdown("---")

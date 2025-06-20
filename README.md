@@ -12,10 +12,11 @@
   - 旅行・レジャー（GW、夏休み、年末年始ピーク）
   - BtoB企業（年度末、四半期末強化）
   - スタートアップ（資金調達時期考慮）
-- 🤖 **AI最適化提案**
+- 🤖 **AI最適化提案** (環境変数でAPIキー設定時)
+  - OpenAI API連携による高度な分析
   - ROAS改善提案
   - 利益率安定化アドバイス
-  - 赤字月の警告と対策
+  - ルールベース分析（APIキー未設定時）
 - 📊 **インタラクティブなビジュアライゼーション**
   - Plotlyによる動的グラフ
   - リアルタイムでの結果反映
@@ -100,12 +101,34 @@ echo "web: streamlit run app.py --server.port=\$PORT --server.address=0.0.0.0" >
 2. "Import from GitHub" でリポジトリをインポート
 3. "Run" ボタンでデプロイ
 
+## 🔒 API設定（AI機能用）
+
+AI最適化機能を使用する場合、以下の方法でAPIキーを設定してください：
+
+### ローカル開発
+```bash
+# 環境変数で設定
+export OPENAI_API_KEY="your_api_key_here"
+
+# または .envファイルに記載
+echo "OPENAI_API_KEY=your_api_key_here" > .env
+```
+
+### Streamlit Cloud
+1. 設定 > Secrets で以下を追加:
+```toml
+OPENAI_API_KEY = "your_api_key_here"
+```
+
+⚠️ **セキュリティ注意**: APIキーは絶対にコードに直接記載せず、環境変数で管理してください。
+
 ## 使用技術
 - Python 3.8+
 - Streamlit
 - Pandas
 - Plotly
 - NumPy
+- OpenAI API (オプション)
 
 ## トラブルシューティング
 
