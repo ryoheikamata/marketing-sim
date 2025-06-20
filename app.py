@@ -239,6 +239,7 @@ def calculate_simulation():
             "月": month_name,
             "売上": int(monthly_revenue),
             "広告費": int(ad_cost),
+            "広告費率": round(ad_cost / monthly_revenue * 100, 1) if monthly_revenue > 0 else 0,
             "コンサル費": int(monthly_consultant),
             "制作費": int(monthly_production),
             "その他": other_fixed_cost,
@@ -366,7 +367,8 @@ with tab3:
     total_revenue = df["売上"].sum()
     total_cost = df["総費用"].sum()
     total_profit = df["利益"].sum()
-    avg_roas = df["ROAS"].mean()
+    total_ad_cost = df["広告費"].sum()
+    overall_roas = (total_revenue / total_ad_cost * 100) if total_ad_cost > 0 else 0
     
     with col1:
         st.metric("総売上", f"{total_revenue:,}万円")
@@ -375,7 +377,7 @@ with tab3:
     with col3:
         st.metric("総利益", f"{total_profit:,}万円", f"{total_profit/total_revenue*100:.1f}%")
     with col4:
-        st.metric("平均ROAS", f"{avg_roas:.0f}%")
+        st.metric("全体ROAS", f"{overall_roas:.0f}%", help="全期間の総売上÷総広告費×100")
     
     # グラフ表示
     col1, col2 = st.columns(2)
@@ -388,9 +390,29 @@ with tab3:
         st.plotly_chart(fig_revenue, use_container_width=True)
     
     with col2:
-        fig_roas = px.bar(df, x="月", y="ROAS", title="ROAS推移")
+        fig_roas = px.bar(df, x="月", y="ROAS", title="ROAS推移（売上÷広告費×100）")
         fig_roas.update_layout(xaxis_tickangle=-45)
+        fig_roas.add_hline(y=100, line_dash="dash", line_color="red", 
+                          annotation_text="損益分岐点(100%)")
         st.plotly_chart(fig_roas, use_container_width=True)
+    
+    # 追加のグラフ：広告費率とROASの関係
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        fig_ad_ratio = px.bar(df, x="月", y="広告費率", title="広告費率推移（広告費÷売上×100）")
+        fig_ad_ratio.update_layout(xaxis_tickangle=-45)
+        fig_ad_ratio.add_hline(y=ad_cost_ratio, line_dash="dash", line_color="green", 
+                              annotation_text=f"目標広告費率({ad_cost_ratio}%)")
+        st.plotly_chart(fig_ad_ratio, use_container_width=True)
+    
+    with col4:
+        # 散布図で広告費率とROASの相関を表示
+        fig_scatter = px.scatter(df, x="広告費率", y="ROAS", 
+                               title="広告費率とROASの相関",
+                               text="月", size="売上")
+        fig_scatter.update_traces(textposition='top center')
+        st.plotly_chart(fig_scatter, use_container_width=True)
     
     # AI最適化提案
     st.subheader("🤖 AI最適化提案")
